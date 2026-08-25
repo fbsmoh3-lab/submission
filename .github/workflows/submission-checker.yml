@@ -3,49 +3,43 @@ on:
   issues:
     types: [opened]
 
+permissions:
+  issues: write
+
 jobs:
   submission-check:
     runs-on: ubuntu-latest
     steps:
       - name: Validate issue title
-        id: validate-title
+        id: validate
+        env:
+          TITLE: ${{ github.event.issue.title }}
         run: |
-          if [[ ! "${{ github.event.issue.title }}" =~ ^\[([mM]odule|[tT]akedown)\][[:space:]]*([a-zA-Z][a-zA-Z0-9._-]+)$ ]]; then
-            echo "valid=false" >> $GITHUB_ENV
+          if [[ "$TITLE" =~ ^\[([mM]odule|[tT]akedown)\][[:space:]]*([a-zA-Z][a-zA-Z0-9._-]+)$ ]]; then
+            echo "valid=true" >> "$GITHUB_OUTPUT"
           else
-            echo "valid=true" >> $GITHUB_ENV
+            echo "valid=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Create comment for invalid title
-        if: env.valid == 'false'
-        uses: actions-cool/issues-helper@v3
-        with:
-          actions: 'create-comment'
-          token: ${{ secrets.GITHUB_TOKEN }}
-          issue-number: ${{ github.event.issue.number }}
-          body: |
-            Hey @${{ github.event.issue.user.login }},
-            
-            your module submission is invalid. A valid submission title must match the pattern `^\[[mM]odule\][[:space:]]*([a-zA-Z][a-zA-Z0-9._-]+)$` (e.g., `[Module] my-module`), otherwise your module can't added.
-            Please update your submission title and try again.
-            
-            *Best regards,  
-            The MMAR Team*
+      - name: Reject invalid submission
+        if: steps.validate.outputs.valid == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          ISSUE: ${{ github.event.issue.number }}
+          AUTHOR: ${{ github.event.issue.user.login }}
+        run: |
+          {
+            printf 'Hey @%s,\n\n' "$AUTHOR"
+            cat <<'EOF'
+          your module submission is invalid. A valid submission title must match the pattern `^\[([mM]odule|[tT]akedown)\][[:space:]]*([a-zA-Z][a-zA-Z0-9._-]+)$` (e.g., `[Module] my-module`), otherwise your module can't be added.
+          Please update your submission title and try again.
 
-      - name: Set invalid label
-        if: env.valid == 'false'
-        uses: actions-cool/issues-helper@v3
-        with:
-          actions: 'set-labels'
-          token: ${{ secrets.GITHUB_TOKEN }}
-          issue-number: ${{ github.event.issue.number }}
-          labels: 'invalid'
+          *Best regards,
+          The MMAR Team*
+          EOF
+          } > "$RUNNER_TEMP/body.md"
 
-      - name: Close invalid submission
-        if: env.valid == 'false'
-        uses: actions-cool/issues-helper@v3
-        with:
-          actions: 'close-issue'
-          close-reason: not_planned
-          token: ${{ secrets.GITHUB_TOKEN }}
-          issue-number: ${{ github.event.issue.number }}
+          gh issue comment "$ISSUE" --body-file "$RUNNER_TEMP/body.md"
+          gh issue edit "$ISSUE" --add-label invalid
+          gh issue close "$ISSUE" --reason "not planned"
