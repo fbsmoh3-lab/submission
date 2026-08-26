@@ -26,6 +26,8 @@ We want to make sure that there are no dangerous modules on the Alt-Repo. Please
 * Module ID must match repo name. In the event that this isn't the case, your new module repo's name will be the same as the module ID.
 * The issue author must be the owner of the module being submitted, or have permission from the owner.
 
+Please don't write your module submissions with LLM, [no one wants to read your AI slop](https://pluralistic.net/2026/03/02/nonconsensual-slopping/) and [why waste time say lot word when few word do trick](https://tvquot.es/the-office/quote/1s4l0ymj/).
+
 ## Source Code Guidelines
 
 * You **must provide the source code** for any executables or APK files included in your submission. If you absolutely need to compile your code, please provide reproducible build instructions. An exception can be made for modules that provide compiled packages/binaries from trusted sources such as recognized developers on the Play Store. In such a case, you **cannot modify** the provided APKs unless doing so does not infringe on the author's copyright and you **must provide the source code/APKtool configuration** for modifications performed, if any.
